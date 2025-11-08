@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Disaster Types</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<a href="index.html">Back</a>
+<h1>Disaster Types</h1>
+
+<h3>Add / Edit Disaster Type</h3>
+<form id="typeForm">
+  <input type="hidden" id="type_id">
+  <label>Type Name</label>
+  <input id="type_name" required><br>
+  <button type="submit">Save</button>
+  <button id="cancel" type="button">Cancel</button>
+</form>
+
+<h3>All Disaster Types</h3>
+<input type="text" id="search" placeholder="Search disaster types...">
+<table>
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Type Name</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody id="tableBody"></tbody>
+</table>
+
+<script>
+const api = "http://localhost:5000/api/disaster_types";
+
+// load all disaster types
+async function loadTypes() {
+  try {
+    const res = await fetch(api);
+    const data = await res.json();
+    const tbody = document.getElementById("tableBody");
+    tbody.innerHTML = "";
+    data.forEach(t => {
+      tbody.innerHTML += `
+        <tr>
+          <td>${t.type_id}</td>
+          <td>${t.type_name}</td>
+          <td>
+            <button onclick="edit(${t.type_id})">Edit</button>
+            <button onclick="del(${t.type_id})">Delete</button>
+          </td>
+        </tr>
+      `;
+    });
+  } catch (err) {
+    alert("Failed to load disaster types");
+  }
+}
+
+// submit form for add/update
+document.getElementById("typeForm").addEventListener("submit", async (e)=>{
+  e.preventDefault();
+  const id = document.getElementById("type_id").value;
+  const body = { type_name: document.getElementById("type_name").value };
+  const url = id ? `${api}/${id}` : `${api}/add`;
+  const method = id ? "PUT" : "POST";
+
+  try {
+    const res = await fetch(url, {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    alert(data.message || data.error);
+    document.getElementById("typeForm").reset();
+    loadTypes();
+  } catch (err) {
+    alert("Failed to save");
+  }
+});
+
+// edit type
+async function edit(id) {
+  try {
+    const res = await fetch(`${api}/${id}`);
+    const data = await res.json();
+    document.getElementById("type_id").value = data.type_id;
+    document.getElementById("type_name").value = data.type_name;
+  } catch (err) {
+    alert("Failed to load type");
+  }
+}
+
+// delete type
+async function del(id) {
+  if (!confirm("Delete this type?")) return;
+  try {
+    const res = await fetch(`${api}/${id}`, { method: "DELETE" });
+    const data = await res.json();
+    alert(data.message || data.error);
+    loadTypes();
+  } catch (err) {
+    alert("Failed to delete");
+  }
+}
+
+// cancel form
+document.getElementById("cancel").addEventListener("click", () => {
+  document.getElementById("typeForm").reset();
+});
+
+// search/filter functionality
+document.getElementById("search").addEventListener("input", function() {
+  const filter = this.value.toLowerCase();
+  const rows = document.querySelectorAll("#tableBody tr");
+  rows.forEach(row => {
+    const typeName = row.cells[1].textContent.toLowerCase();
+    row.style.display = typeName.includes(filter) ? "" : "none";
+  });
+});
+
+// initial load
+loadTypes();
+</script>
+
+</body>
+</html>

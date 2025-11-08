@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Relief Centers</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h1>Relief Centers</h1>
+  <a href="index.html">Back to Home</a>
+
+  <section class="form-section">
+    <h2>Add Relief Center</h2>
+    <form id="centerForm">
+      <label for="name">Name:</label>
+      <input type="text" id="name" required>
+
+      <label for="capacity">Capacity:</label>
+      <input type="number" id="capacity" required>
+
+      <label for="location_id">Location ID:</label>
+      <input type="number" id="location_id" required>
+
+      <label for="contact">Contact:</label>
+      <input type="text" id="contact">
+
+      <button type="submit">Add</button>
+    </form>
+  </section>
+
+  <section class="data-section">
+    <h2>All Relief Centers</h2>
+    <input type="text" id="search" placeholder="Search centers...">
+    <table border="1" id="centerTable">
+      <thead>
+        <tr>
+          <th>ID</th><th>Name</th><th>Capacity</th><th>Location ID</th><th>Contact</th><th>Actions</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </section>
+
+  <script>
+    const API_URL = "/api/relief_centers";
+
+    async function loadCenters() {
+      try {
+        const res = await fetch(API_URL);
+        const data = await res.json();
+        const tbody = document.querySelector("#centerTable tbody");
+        tbody.innerHTML = "";
+        data.forEach(c => {
+          tbody.innerHTML += `
+            <tr>
+              <td>${c.center_id}</td>
+              <td>${c.name}</td>
+              <td>${c.capacity}</td>
+              <td>${c.location_id}</td>
+              <td>${c.contact}</td>
+              <td>
+                <button type="button" onclick="deleteCenter(${c.center_id})">Delete</button>
+              </td>
+            </tr>
+          `;
+        });
+      } catch (err) {
+        console.error("Failed to load centers:", err);
+      }
+    }
+
+    document.getElementById("centerForm").addEventListener("submit", async e => {
+      e.preventDefault();
+      const newCenter = {
+        name: document.getElementById("name").value,
+        capacity: +document.getElementById("capacity").value,
+        location_id: +document.getElementById("location_id").value,
+        contact: document.getElementById("contact").value
+      };
+      try {
+        const res = await fetch(`${API_URL}/add`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(newCenter)
+        });
+        const data = await res.json();
+        alert(data.message || data.error);
+        e.target.reset();
+        loadCenters();
+      } catch (err) {
+        console.error("Failed to add center:", err);
+      }
+    });
+
+    async function deleteCenter(id) {
+      if (!confirm("Are you sure you want to delete this relief center?")) return;
+      try {
+        const res = await fetch(`${API_URL}/${id}`, { method: "DELETE" });
+        const data = await res.json();
+        alert(data.message || data.error);
+        loadCenters();
+      } catch (err) {
+        console.error("Failed to delete center:", err);
+      }
+    }
+
+    // Search functionality
+    document.getElementById("search").addEventListener("input", function() {
+      const filter = this.value.toLowerCase();
+      const rows = document.querySelectorAll("#centerTable tbody tr");
+      rows.forEach(row => {
+        const cells = row.querySelectorAll("td");
+        let match = false;
+        for (let i = 1; i < cells.length - 1; i++) { // skip ID and Actions
+          if (cells[i].textContent.toLowerCase().includes(filter)) {
+            match = true;
+            break;
+          }
+        }
+        row.style.display = match ? "" : "none";
+      });
+    });
+
+    window.onload = loadCenters;
+  </script>
+</body>
+</html>

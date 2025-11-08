@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Disasters</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h1>Disasters</h1>
+  <a href="index.html">Back to Home</a>
+
+  <h2>Add New Disaster</h2>
+  <form id="disasterForm">
+    <label>Disaster Type:</label>
+    <select id="type_id">
+      <option value="1">Flood</option>
+      <option value="2">Earthquake</option>
+      <option value="3">Cyclone</option>
+    </select><br>
+
+    <label>Event Name:</label><input type="text" id="event_name"><br>
+    <label>Date:</label><input type="date" id="date_occurred"><br>
+
+    <label>Location:</label>
+    <select id="location_id">
+      <option value="1">Chennai</option>
+      <option value="2">Bangalore</option>
+      <option value="3">Delhi</option>
+    </select><br>
+
+    <label>Severity:</label><input type="text" id="severity"><br>
+    <label>Status:</label><input type="text" id="status"><br>
+    <button type="submit">Submit</button>
+  </form>
+
+  <h2>All Disasters</h2>
+  <input type="text" id="search" placeholder="Search disasters...">
+  <table border="1">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Type</th>
+        <th>Event</th>
+        <th>Date</th>
+        <th>Location</th>
+        <th>Severity</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody id="tableBody"></tbody>
+  </table>
+
+  <script>
+    // Load disasters
+    async function loadDisasters() {
+      try {
+        const res = await fetch('http://localhost:5000/api/disasters');
+        const data = await res.json();
+        const tbody = document.getElementById('tableBody');
+        tbody.innerHTML = "";
+        data.forEach(d => {
+          const row = `
+            <tr>
+              <td>${d.disaster_id}</td>
+              <td>${d.disaster_type}</td>
+              <td>${d.event_name}</td>
+              <td>${d.date_occurred}</td>
+              <td>${d.location}</td>
+              <td>${d.severity}</td>
+              <td>${d.status}</td>
+            </tr>
+          `;
+          tbody.innerHTML += row;
+        });
+      } catch(err) {
+        console.error(err);
+      }
+    }
+
+    window.onload = loadDisasters;
+
+    // Add disaster
+    document.getElementById('disasterForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const res = await fetch('http://localhost:5000/api/disasters/add', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type_id: document.getElementById('type_id').value,
+          event_name: document.getElementById('event_name').value,
+          date_occurred: document.getElementById('date_occurred').value,
+          location_id: document.getElementById('location_id').value,
+          severity: document.getElementById('severity').value,
+          status: document.getElementById('status').value
+        })
+      });
+      const data = await res.json();
+      alert(data.message);
+      loadDisasters(); // refresh table
+    });
+
+    // Multi-column search/filter
+    document.getElementById('search').addEventListener('input', function() {
+      const filter = this.value.toLowerCase();
+      const rows = document.querySelectorAll("#tableBody tr");
+      rows.forEach(row => {
+        const cells = row.querySelectorAll("td");
+        let match = false;
+        for (let i = 0; i < cells.length; i++) {
+          if (cells[i].textContent.toLowerCase().includes(filter)) {
+            match = true;
+            break;
+          }
+        }
+        row.style.display = match ? "" : "none";
+      });
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agencies</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <a href="index.html">Back to Home</a>
+  <h1>Agencies</h1>
+
+  <section class="form-section">
+    <h2>Add / Update Agency</h2>
+    <form id="agencyForm">
+      <input type="hidden" id="agency_id">
+      <label>Name:</label><input type="text" id="name" required><br>
+      <label>Type:</label><input type="text" id="type"><br>
+      <label>Contact:</label><input type="text" id="contact"><br>
+      <label>Location ID:</label><input type="number" id="location_id" required><br>
+      <button type="submit">Save</button>
+      <button type="button" id="cancel">Cancel</button>
+    </form>
+  </section>
+
+  <section class="data-section">
+    <h2>All Agencies</h2>
+    <input type="text" id="search" placeholder="Search agencies by name...">
+    <table border="1">
+      <thead>
+        <tr>
+          <th>ID</th><th>Name</th><th>Type</th><th>Contact</th><th>Location</th><th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </section>
+
+  <script>
+    const API_URL = "http://localhost:5000/api/agencies";
+
+    async function loadAgencies() {
+      const res = await fetch(API_URL);
+      const data = await res.json();
+      const tbody = document.getElementById('tableBody');
+      tbody.innerHTML = '';
+      data.forEach(a => {
+        tbody.innerHTML += `
+          <tr>
+            <td>${a.agency_id}</td>
+            <td>${a.name}</td>
+            <td>${a.type}</td>
+            <td>${a.contact}</td>
+            <td>${a.location}</td>
+            <td>
+              <button onclick="editAgency(${a.agency_id}, '${a.name}', '${a.type}', '${a.contact}', ${a.location_id})">Edit</button>
+              <button onclick="deleteAgency(${a.agency_id})">Delete</button>
+            </td>
+          </tr>
+        `;
+      });
+    }
+
+    document.getElementById('agencyForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      const agency_id = document.getElementById('agency_id').value;
+      const agencyData = {
+        name: document.getElementById('name').value,
+        type: document.getElementById('type').value,
+        contact: document.getElementById('contact').value,
+        location_id: +document.getElementById('location_id').value
+      };
+
+      if (agency_id) {
+        // Update
+        const res = await fetch(`${API_URL}/${agency_id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(agencyData)
+        });
+        alert((await res.json()).message);
+      } else {
+        // Add
+        const res = await fetch(`${API_URL}/add`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(agencyData)
+        });
+        alert((await res.json()).message);
+      }
+
+      document.getElementById('agencyForm').reset();
+      document.getElementById('agency_id').value = '';
+      loadAgencies();
+    });
+
+    function editAgency(id, name, type, contact, location_id) {
+      document.getElementById('agency_id').value = id;
+      document.getElementById('name').value = name;
+      document.getElementById('type').value = type;
+      document.getElementById('contact').value = contact;
+      document.getElementById('location_id').value = location_id;
+    }
+
+    async function deleteAgency(id) {
+      if (!confirm('Are you sure you want to delete this agency?')) return;
+      const res = await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
+      const data = await res.json();
+      alert(data.message || data.error);
+      loadAgencies();
+    }
+
+    // Cancel button resets form
+    document.getElementById('cancel').addEventListener('click', () => {
+      document.getElementById('agencyForm').reset();
+      document.getElementById('agency_id').value = '';
+    });
+
+    // Search/filter table by agency name
+    document.getElementById('search').addEventListener('input', function() {
+      const filter = this.value.toLowerCase();
+      const rows = document.querySelectorAll("#tableBody tr");
+      rows.forEach(row => {
+        const name = row.cells[1].textContent.toLowerCase();
+        row.style.display = name.includes(filter) ? "" : "none";
+      });
+    });
+
+    window.onload = loadAgencies;
+  </script>
+</body>
+</html>

@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Locations</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <a href="index.html" style="display:block;margin:20px;color:#200d0d;">Back</a>
+
+  <h1>Locations</h1>
+
+  <h3>Add / Edit Location</h3>
+  <form id="locationForm">
+    <input type="hidden" id="location_id">
+    <label>District</label><input id="district" required><br>
+    <label>City</label><input id="city" required><br>
+    <label>Pincode</label><input id="pincode" type="number" required><br>
+    <button type="submit">Save</button>
+    <button id="cancel" type="button">Cancel</button>
+  </form>
+
+  <h3>All Locations</h3>
+  <input type="text" id="search" placeholder="Search locations...">
+  <table border="1">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>District</th>
+        <th>City</th>
+        <th>Pincode</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody id="tableBody"></tbody>
+  </table>
+
+<script>
+const api = 'http://localhost:5000/api/locations';
+
+// Load all locations
+async function loadLocations() {
+  try {
+    const res = await fetch(api);
+    if (!res.ok) throw new Error('Failed to load locations');
+    const data = await res.json();
+    const tbody = document.getElementById('tableBody');
+    tbody.innerHTML = '';
+    data.forEach(loc => {
+      tbody.innerHTML += `<tr>
+        <td>${loc.location_id}</td>
+        <td>${loc.district}</td>
+        <td>${loc.city}</td>
+        <td>${loc.pincode}</td>
+        <td>
+          <button onclick="edit(${loc.location_id})">Edit</button>
+          <button onclick="del(${loc.location_id})">Delete</button>
+        </td>
+      </tr>`;
+    });
+  } catch (err) {
+    alert(err.message);
+  }
+}
+
+// Add / Update location
+document.getElementById('locationForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const id = document.getElementById('location_id').value;
+  const body = {
+    district: document.getElementById('district').value,
+    city: document.getElementById('city').value,
+    pincode: parseInt(document.getElementById('pincode').value)
+  };
+  const url = id ? `${api}/${id}` : `${api}/add`;
+  const opts = {
+    method: id ? 'PUT' : 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  };
+  try {
+    const res = await fetch(url, opts);
+    const data = await res.json();
+    if (res.ok) {
+      alert(data.message || 'Saved');
+      document.getElementById('locationForm').reset();
+      loadLocations();
+    } else {
+      alert(data.error || 'Error');
+    }
+  } catch (err) {
+    alert('Request failed: ' + err.message);
+  }
+});
+
+// Edit location
+async function edit(id) {
+  try {
+    const res = await fetch(`${api}/${id}`);
+    const data = await res.json();
+    document.getElementById('location_id').value = data.location_id;
+    document.getElementById('district').value = data.district;
+    document.getElementById('city').value = data.city;
+    document.getElementById('pincode').value = data.pincode;
+  } catch (err) {
+    alert('Failed to fetch location');
+  }
+}
+
+// Delete location
+async function del(id) {
+  if (!confirm('Delete?')) return;
+  try {
+    const res = await fetch(`${api}/${id}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (res.ok) {
+      alert(data.message || 'Deleted');
+      loadLocations();
+    } else {
+      alert(data.error || 'Error');
+    }
+  } catch (err) {
+    alert('Delete failed');
+  }
+}
+
+// Cancel form
+document.getElementById('cancel').addEventListener('click', () => {
+  document.getElementById('locationForm').reset();
+});
+
+// Multi-column search
+document.getElementById("search").addEventListener("input", function() {
+  const filter = this.value.toLowerCase();
+  const rows = document.querySelectorAll("#tableBody tr");
+  rows.forEach(row => {
+    const cells = row.querySelectorAll("td");
+    let match = false;
+    for (let i = 1; i < cells.length - 1; i++) { // skip ID and Actions
+      if (cells[i].textContent.toLowerCase().includes(filter)) {
+        match = true;
+        break;
+      }
+    }
+    row.style.display = match ? "" : "none";
+  });
+});
+
+// Initial load
+loadLocations();
+</script>
+</body>
+</html>

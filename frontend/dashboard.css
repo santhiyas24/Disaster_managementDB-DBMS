@@ -1,0 +1,174 @@
+/* dashboard.css - Heart Vibe Marks Dashboard */
+
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700&display=swap');
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Nunito', sans-serif;
+  background: linear-gradient(135deg, #ffe6f0, #fff0f5);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Header */
+header {
+  width: 100%;
+  text-align: center;
+  padding: 30px 20px;
+  background: linear-gradient(to right, #ff4d4d, #ff99cc);
+  color: white;
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  position: sticky;
+  top: 0;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+/* Heart Animation Background */
+body::before {
+  content: '❤️';
+  position: fixed;
+  font-size: 50px;
+  opacity: 0.1;
+  top: 10%;
+  left: 20%;
+  animation: floatHeart 10s infinite linear;
+}
+body::after {
+  content: '💖';
+  position: fixed;
+  font-size: 60px;
+  opacity: 0.1;
+  top: 50%;
+  left: 70%;
+  animation: floatHeart 15s infinite linear reverse;
+}
+
+@keyframes floatHeart {
+  0% { transform: translateY(0) rotate(0deg);}
+  50% { transform: translateY(-50px) rotate(180deg);}
+  100% { transform: translateY(0) rotate(360deg);}
+}
+
+/* Dashboard Cards */
+.dashboard-cards {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 25px;
+  margin: 30px 0;
+  width: 90%;
+}
+
+.card {
+  background: white;
+  width: 220px;
+  height: 140px;
+  border-radius: 20px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+  text-align: center;
+  padding: 20px;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.card::before {
+  content: '❤️';
+  position: absolute;
+  font-size: 80px;
+  opacity: 0.1;
+  bottom: -10px;
+  right: -10px;
+  transform: rotate(-25deg);
+}
+
+.card:hover {
+  transform: translateY(-10px) scale(1.05);
+  box-shadow: 0 12px 30px rgba(0,0,0,0.3);
+}
+
+.card h2 {
+  margin: 0;
+  font-size: 28px;
+  color: #ff4d4d;
+}
+
+.card p {
+  margin: 5px 0 0;
+  font-size: 18px;
+  color: #333;
+}
+
+/* Marks Table */
+.marks-table {
+  width: 95%;
+  margin: 30px auto;
+  border-collapse: collapse;
+  border-radius: 15px;
+  overflow: hidden;
+  box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+  background: white;
+}
+
+.marks-table th, .marks-table td {
+  padding: 12px 15px;
+  text-align: center;
+}
+
+.marks-table th {
+  background: linear-gradient(to right, #ff4d4d, #ff99cc);
+  color: white;
+  font-size: 18px;
+}
+
+.marks-table tr:nth-child(even) {
+  background-color: #fff0f5;
+}
+
+.marks-table tr:hover {
+  background-color: #ffe6f0;
+  transform: scale(1.02);
+  transition: all 0.2s ease;
+}
+
+.marks-table input {
+  width: 60px;
+  padding: 6px;
+  border-radius: 8px;
+  border: 1px solid #ff99cc;
+  text-align: center;
+}
+
+.marks-table button {
+  background: linear-gradient(to right, #ff4d4d, #ff99cc);
+  color: white;
+  border: none;
+  padding: 7px 14px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.marks-table button:hover {
+  transform: scale(1.1);
+  background: linear-gradient(to right, #e60000, #ff66b3);
+}
+
+/* Responsive */
+@media(max-width: 900px){
+  .dashboard-cards {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .card {
+    width: 80%;
+  }
+}
+

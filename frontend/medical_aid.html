@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Medical Aid</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h1>Medical Aid</h1>
+  <a href="index.html">Back to Home</a>
+
+  <section class="form-section">
+    <h2>Add Medical Aid</h2>
+    <form id="medicalForm">
+      <label for="type">Type:</label>
+      <input type="text" id="type" required>
+
+      <label for="quantity">Quantity:</label>
+      <input type="number" id="quantity" required>
+
+      <label for="location_id">Location ID:</label>
+      <input type="number" id="location_id" required>
+
+      <label for="expiry_date">Expiry Date:</label>
+      <input type="date" id="expiry_date">
+
+      <button type="submit">Add</button>
+    </form>
+  </section>
+
+  <section class="data-section">
+    <h2>All Medical Aid</h2>
+    <input type="text" id="search" placeholder="Search medical aid...">
+    <table border="1" id="medicalTable">
+      <thead>
+        <tr>
+          <th>ID</th><th>Type</th><th>Quantity</th><th>Location ID</th><th>Expiry Date</th><th>Actions</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </section>
+
+  <script>
+    const API_URL = "/api/medical_aid"; 
+
+    async function loadMedical() {
+      try {
+        const res = await fetch(API_URL);
+        const data = await res.json();
+        const tbody = document.querySelector("#medicalTable tbody");
+        tbody.innerHTML = "";
+        data.forEach(m => {
+          tbody.innerHTML += `
+            <tr>
+              <td>${m.aid_id}</td>
+              <td>${m.type}</td>
+              <td>${m.quantity}</td>
+              <td>${m.location_id}</td>
+              <td>${m.expiry_date}</td>
+              <td>
+                <button type="button" onclick="deleteMedical(${m.aid_id})">Delete</button>
+              </td>
+            </tr>
+          `;
+        });
+      } catch (err) {
+        console.error("Failed to load medical aid:", err);
+      }
+    }
+
+    document.getElementById("medicalForm").addEventListener("submit", async e => {
+      e.preventDefault();
+      const newMedical = {
+        type: document.getElementById("type").value,
+        quantity: +document.getElementById("quantity").value,
+        location_id: +document.getElementById("location_id").value,
+        expiry_date: document.getElementById("expiry_date").value
+      };
+      try {
+        const res = await fetch(`${API_URL}/add`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(newMedical)
+        });
+        const data = await res.json();
+        alert(data.message || data.error);
+        e.target.reset();
+        loadMedical();
+      } catch (err) {
+        console.error("Failed to add medical aid:", err);
+      }
+    });
+
+    async function deleteMedical(id) {
+      if (!confirm("Are you sure you want to delete this medical aid?")) return;
+      try {
+        const res = await fetch(`${API_URL}/${id}`, { method: "DELETE" });
+        const data = await res.json();
+        alert(data.message || data.error);
+        loadMedical();
+      } catch (err) {
+        console.error("Failed to delete medical aid:", err);
+      }
+    }
+
+    // Multi-column search
+    document.getElementById("search").addEventListener("input", function() {
+      const filter = this.value.toLowerCase();
+      const rows = document.querySelectorAll("#medicalTable tbody tr");
+      rows.forEach(row => {
+        const cells = row.querySelectorAll("td");
+        let match = false;
+        for (let i = 1; i < cells.length - 1; i++) { // skip ID and Actions
+          if (cells[i].textContent.toLowerCase().includes(filter)) {
+            match = true;
+            break;
+          }
+        }
+        row.style.display = match ? "" : "none";
+      });
+    });
+
+    window.onload = loadMedical;
+  </script>
+</body>
+</html>

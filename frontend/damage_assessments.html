@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Damage Assessments</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h1>Damage Assessments</h1>
+  <a href="index.html">Back to Home</a>
+
+  <section class="form-section">
+    <h2>Add Assessment</h2>
+    <form id="assessmentForm">
+      <label for="disaster_id">Disaster ID:</label>
+      <input type="number" id="disaster_id" required>
+
+      <label for="assessed_at">Assessed At:</label>
+      <input type="datetime-local" id="assessed_at" required>
+
+      <label for="damaged_houses">Damaged Houses:</label>
+      <input type="number" id="damaged_houses">
+
+      <label for="estimated_loss">Estimated Loss:</label>
+      <input type="number" id="estimated_loss" step="0.01">
+
+      <button type="submit">Add</button>
+    </form>
+  </section>
+
+  <section class="data-section">
+    <h2>All Damage Assessments</h2>
+    <input type="text" id="search" placeholder="Search assessments...">
+    <table border="1" id="assessmentTable">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Disaster ID</th>
+          <th>Assessed At</th>
+          <th>Damaged Houses</th>
+          <th>Estimated Loss</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </section>
+
+  <script>
+    const API_URL = "/api/damage_assessments"; 
+
+    // Load all assessments
+    async function loadAssessments() {
+      try {
+        const res = await fetch(API_URL);
+        const data = await res.json();
+        const tbody = document.querySelector("#assessmentTable tbody");
+        tbody.innerHTML = "";
+        data.forEach(a => {
+          tbody.innerHTML += `
+            <tr>
+              <td>${a.assessment_id}</td>
+              <td>${a.disaster_id}</td>
+              <td>${new Date(a.assessed_at).toLocaleString()}</td>
+              <td>${a.damaged_houses}</td>
+              <td>${a.estimated_loss}</td>
+              <td>
+                <button type="button" onclick="deleteAssessment(${a.assessment_id})">Delete</button>
+              </td>
+            </tr>
+          `;
+        });
+      } catch (err) {
+        console.error("Failed to load assessments:", err);
+      }
+    }
+
+    // Add new assessment
+    document.getElementById("assessmentForm").addEventListener("submit", async e => {
+      e.preventDefault();
+      const newAssessment = {
+        disaster_id: +document.getElementById("disaster_id").value,
+        assessed_at: document.getElementById("assessed_at").value,
+        damaged_houses: +document.getElementById("damaged_houses").value,
+        estimated_loss: +document.getElementById("estimated_loss").value
+      };
+
+      try {
+        const res = await fetch(`${API_URL}/add`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(newAssessment)
+        });
+        const data = await res.json();
+        alert(data.message || data.error);
+        e.target.reset();
+        loadAssessments();
+      } catch (err) {
+        console.error("Failed to add assessment:", err);
+      }
+    });
+
+    // Delete assessment
+    async function deleteAssessment(id) {
+      if (!confirm("Are you sure you want to delete this assessment?")) return;
+      try {
+        const res = await fetch(`${API_URL}/${id}`, { method: "DELETE" });
+        const data = await res.json();
+        alert(data.message || data.error);
+        loadAssessments();
+      } catch (err) {
+        console.error("Failed to delete assessment:", err);
+      }
+    }
+
+    // Multi-column search/filter
+    document.getElementById("search").addEventListener("input", function() {
+      const filter = this.value.toLowerCase();
+      const rows = document.querySelectorAll("#assessmentTable tbody tr");
+      rows.forEach(row => {
+        const cells = row.querySelectorAll("td");
+        let match = false;
+        for (let i = 0; i < cells.length - 1; i++) { // exclude actions column
+          if (cells[i].textContent.toLowerCase().includes(filter)) {
+            match = true;
+            break;
+          }
+        }
+        row.style.display = match ? "" : "none";
+      });
+    });
+
+    window.onload = loadAssessments;
+  </script>
+</body>
+</html>

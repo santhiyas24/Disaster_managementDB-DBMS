@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Donations</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h1>Donations</h1>
+  <a href="index.html">Back to Home</a>
+
+  <section class="form-section">
+    <h2>Add Donation</h2>
+    <form id="donationForm">
+      <label for="donor_name">Donor Name:</label>
+      <input type="text" id="donor_name" required><br>
+
+      <label for="resource_id">Resource:</label>
+      <select id="resource_id" required></select><br>
+
+      <label for="quantity">Quantity:</label>
+      <input type="number" id="quantity" required><br>
+
+      <label for="donated_at">Donated At:</label>
+      <input type="datetime-local" id="donated_at" required><br>
+
+      <label for="received_by">Received By:</label>
+      <input type="text" id="received_by"><br>
+
+      <button type="submit">Add</button>
+    </form>
+  </section>
+
+  <section class="data-section">
+    <h2>All Donations</h2>
+    <input type="text" id="search" placeholder="Search donations...">
+    <table border="1" id="donationTable">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Donor</th>
+          <th>Resource</th>
+          <th>Quantity</th>
+          <th>Donated At</th>
+          <th>Received By</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </section>
+
+  <script>
+    const DONATION_API = "http://localhost:5000/api/donations";
+    const RESOURCE_API = "http://localhost:5000/api/resources";
+
+    // Load donations table
+    async function loadDonations() {
+      const res = await fetch(DONATION_API);
+      const data = await res.json();
+      const tbody = document.querySelector("#donationTable tbody");
+      tbody.innerHTML = "";
+      data.forEach(d => {
+        tbody.innerHTML += `
+          <tr>
+            <td>${d.donation_id}</td>
+            <td>${d.donor_name}</td>
+            <td>${d.resource}</td>
+            <td>${d.quantity}</td>
+            <td>${new Date(d.donated_at).toLocaleString()}</td>
+            <td>${d.received_by}</td>
+            <td><button onclick="deleteDonation(${d.donation_id})">Delete</button></td>
+          </tr>
+        `;
+      });
+    }
+
+    // Load resources dropdown
+    async function loadResources() {
+      const res = await fetch(RESOURCE_API);
+      const resources = await res.json();
+      const select = document.getElementById("resource_id");
+      select.innerHTML = "";
+      resources.forEach(r => {
+        select.innerHTML += `<option value="${r.resource_id}">${r.name} (${r.location})</option>`;
+      });
+    }
+
+    // Add donation
+    document.getElementById("donationForm").addEventListener("submit", async e => {
+      e.preventDefault();
+      const newDonation = {
+        donor_name: document.getElementById("donor_name").value,
+        resource_id: +document.getElementById("resource_id").value,
+        quantity: +document.getElementById("quantity").value,
+        donated_at: document.getElementById("donated_at").value,
+        received_by: document.getElementById("received_by").value
+      };
+      try {
+        const res = await fetch(`${DONATION_API}/add`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(newDonation)
+        });
+        const data = await res.json();
+        alert(data.message || "Added successfully");
+        e.target.reset();
+        loadDonations();
+      } catch(err) {
+        console.error(err);
+        alert("Failed to add donation");
+      }
+    });
+
+    // Delete donation
+    async function deleteDonation(id) {
+      if (!confirm("Delete this donation?")) return;
+      try {
+        const res = await fetch(`${DONATION_API}/${id}`, { method: "DELETE" });
+        const data = await res.json();
+        alert(data.message || "Deleted");
+        loadDonations();
+      } catch(err) {
+        console.error(err);
+        alert("Failed to delete donation");
+      }
+    }
+
+    // Multi-column search
+    document.getElementById("search").addEventListener("input", function() {
+      const filter = this.value.toLowerCase();
+      const rows = document.querySelectorAll("#donationTable tbody tr");
+      rows.forEach(row => {
+        const cells = row.querySelectorAll("td");
+        let match = false;
+        for (let i = 0; i < cells.length - 1; i++) { // exclude actions column
+          if (cells[i].textContent.toLowerCase().includes(filter)) {
+            match = true;
+            break;
+          }
+        }
+        row.style.display = match ? "" : "none";
+      });
+    });
+
+    async function init() {
+      await loadResources();
+      await loadDonations();
+    }
+
+    window.onload = init;
+  </script>
+</body>
+</html>
