@@ -1,0 +1,219 @@
+QUERIES 
+1.List all disasters with their disaster type names
+
+SELECT d.event_name, t.type_name, d.date_occurred
+FROM disasters d
+JOIN disaster_types t ON d.type_id = t.type_id;
+
+2.Count total number of disasters by each type
+
+SELECT t.type_name, COUNT(*) AS total_disasters
+FROM disasters d
+JOIN disaster_types t ON d.type_id = t.type_id
+GROUP BY t.type_name;
+
+3. Find the most severe disaster
+
+SELECT event_name, severity 
+FROM disasters
+ORDER BY severity DESC
+LIMIT 1;
+
+4. List victims who are severely injured
+
+
+SELECT name, age, gender, injury_level 
+FROM victims
+WHERE injury_level = 'Severe';
+
+5. Count total victims per disaster
+
+SELECT d.event_name, COUNT(v.victim_id) AS total_victims
+FROM disasters d
+LEFT JOIN victims v ON d.disaster_id = v.disaster_id
+GROUP BY d.event_name;
+
+6.List volunteers along with the disasters they are assigned to
+
+SELECT v.name, v.contact, d.event_name
+FROM volunteers v
+JOIN disasters d ON v.assigned_disaster_id = d.disaster_id;
+
+7. Show donations grouped by disaster
+
+SELECT d.event_name, SUM(amount) AS total_donations
+FROM donations dn
+JOIN disasters d ON dn.disaster_id = d.disaster_id
+GROUP BY d.event_name;
+
+8. Find disasters with no donations yet
+
+SELECT event_name
+FROM disasters
+WHERE disaster_id NOT IN (SELECT disaster_id FROM donations);
+
+9. List disasters that happened in Tamil Nadu
+
+SELECT d.event_name, l.state
+FROM disasters d
+JOIN locations l ON d.location_id = l.location_id
+WHERE l.state = 'Tamil Nadu';
+
+10. Get volunteers who are not assigned to any disaster
+
+SELECT name, contact
+FROM volunteers
+WHERE assigned_disaster_id IS NULL;
+
+11. Find total resources allocated per disaster
+
+SELECT d.event_name, SUM(r.quantity) AS total_resources
+FROM resources r
+JOIN disasters d ON r.disaster_id = d.disaster_id
+GROUP BY d.event_name;
+
+12. Get the youngest victim
+
+SELECT name, age FROM victims ORDER BY age ASC LIMIT 1;
+
+13. Disasters that affected more than 50 victims
+
+SELECT d.event_name, COUNT(v.victim_id) AS victim_count
+FROM disasters d
+JOIN victims v ON d.disaster_id = v.disaster_id
+GROUP BY d.event_name
+HAVING COUNT(v.victim_id) > 50;
+
+14. Agencies involved in rescue roles
+
+SELECT agency_name, role FROM agencies WHERE role LIKE '%Rescue%';
+
+15. Find disasters after the year 2020
+
+SELECT event_name, date_occurred 
+FROM disasters
+WHERE date_occurred > '2020-01-01';
+
+16. Average donations per disaster
+
+SELECT d.event_name, AVG(dn.amount) AS avg_donation
+FROM donations dn
+JOIN disasters d ON dn.disaster_id = d.disaster_id
+GROUP BY d.event_name;
+
+17. Count shelters available in each state
+
+SELECT l.state, COUNT(s.shelter_id) AS total_shelters
+FROM shelters s
+JOIN locations l ON s.location_id = l.location_id
+GROUP BY l.state;
+
+18. Get top 5 highest donation donors
+
+SELECT donor_name, amount
+FROM donations
+ORDER BY amount DESC
+LIMIT 5;
+
+19. Show disasters and affected location details
+
+SELECT d.event_name, l.district, l.state, l.country
+FROM disasters d
+JOIN locations l ON d.location_id = l.location_id;
+
+20. Find total volunteers per disaster
+
+SELECT d.event_name, COUNT(v.volunteer_id) AS total_volunteers
+FROM disasters d
+LEFT JOIN volunteers v ON d.disaster_id = v.assigned_disaster_id
+GROUP BY d.event_name;
+
+21. Identify repeated disaster types in same location
+
+SELECT l.state, t.type_name, COUNT(*) AS times_occurred
+FROM disasters d
+JOIN locations l ON d.location_id = l.location_id
+JOIN disaster_types t ON d.type_id = t.type_id
+GROUP BY l.state, t.type_name
+HAVING COUNT(*) > 1;
+
+22. Find largest resource quantity provided
+
+SELECT resource_name, quantity
+FROM resources
+ORDER BY quantity DESC
+LIMIT 1;
+
+23. Victims who recovered
+
+SELECT name, status
+FROM victims
+WHERE status = 'Recovered';
+
+24. List disasters sorted by severity and date
+
+SELECT event_name, severity, date_occurred
+FROM disasters
+ORDER BY severity DESC, date_occurred DESC;
+
+25. Donors who donated more than 10,000
+
+SELECT donor_name, amount
+FROM donations
+WHERE amount > 10000;
+
+----------------------------------------------------------------------------------------------------------------------
+TRIGGERS :
+1.When a new victim is added → auto update disaster severity status to “Critical” if victims > 50
+
+CREATE OR REPLACE FUNCTION update_disaster_severity()
+RETURNS TRIGGER AS $$
+BEGIN
+  PERFORM 1 FROM victims WHERE disaster_id = NEW.disaster_id LIMIT 51;
+  IF FOUND THEN
+    UPDATE disasters SET severity = 'Critical'
+    WHERE disaster_id = NEW.disaster_id;
+  END IF;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_victim_insert
+AFTER INSERT ON victims
+FOR EACH ROW EXECUTE FUNCTION update_disaster_severity();
+
+------------------------------------------------------------------------------------------------------------------------
+PROCEDURES :
+1.SCENARIO
+
+Admin wants to allocate available volunteers to a specific disaster
+but ONLY volunteers who are:
+available = TRUE
+from the same location of that disaster
+After allocation → volunteers availability will automatically become FALSE (because now they are assigned)
+
+CREATE OR REPLACE PROCEDURE assign_volunteers_to_disaster(did INT)
+AS $$
+DECLARE
+    loc INT;
+BEGIN
+    SELECT location_id INTO loc FROM disasters WHERE disaster_id = did;
+
+    IF loc IS NULL THEN
+        RAISE EXCEPTION 'Disaster not found';
+    END IF;
+    UPDATE volunteers
+    SET availability = FALSE
+    WHERE location_id = loc AND availability = TRUE;
+    UPDATE disasters
+    SET status = 'Volunteers Assigned'
+    WHERE disaster_id = did;
+
+    RAISE NOTICE 'Volunteers assigned to disaster % at location %', did, loc;
+END;
+$$ LANGUAGE plpgsql;
+
+CALL assign_volunteers_to_disaster(3);
+
+---------------------------------------------------------------------------------------------
